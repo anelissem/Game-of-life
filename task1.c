@@ -120,31 +120,31 @@ int main(int argc, const char *argv[])
   fscanf(f, "%d\n", &T);
   fscanf(f, "%d %d\n", &N, &M);
   fscanf(f, "%d\n", &K);
-  if (T == 1)
+  ///allocating memory for the matrix that represents the game table
+  CEL **matrix;
+  matrix = (CEL **)malloc(N * sizeof(CEL *));
+  if (matrix == NULL)
   {
-    ///allocating memory for the matrix that represents the game table
-    CEL **matrix;
-    matrix = (CEL **)malloc(N * sizeof(CEL *));
-    if (matrix == NULL)
+    printf("Error at the momory allocation for the entire matrix\n");
+    return 1;
+  }
+  for (int j = 0; j < N; j++)
+  {
+    matrix[j] = (CEL *)malloc(M * sizeof(CEL));
+    if (matrix[j] == NULL)
     {
-      printf("Error at the momory allocation for the entire matrix\n");
+      printf("Error at the momory allocation for the rows of the matrix\n");
       return 1;
     }
-    for (int j = 0; j < N; j++)
+  }
+  for (int j = 0; j < N; j++)
+    for (int q = 0; q < M; q++)
     {
-      matrix[j] = (CEL *)malloc(M * sizeof(CEL));
-      if (matrix[j] == NULL)
-      {
-        printf("Error at the momory allocation for the rows of the matrix\n");
-        return 1;
-      }
+      fscanf(f, " %c", &matrix[j][q].state);
+      matrix[j][q].neighbors = 0;
     }
-    for (int j = 0; j < N; j++)
-      for (int q = 0; q < M; q++)
-      {
-        fscanf(f, " %c", &matrix[j][q].state);
-        matrix[j][q].neighbors = 0;
-      }
+  if (T == 1)
+  {
     rules(matrix, N, M, K, argv);
     for (int j = 0; j < N; j++)
     {
@@ -155,7 +155,7 @@ int main(int argc, const char *argv[])
   else if (T == 2)
   {
     GEN *stacktop=NULL;
-
+    CEL **matrix;
     deleteStack(&stacktop);
   }
   fclose(f);
