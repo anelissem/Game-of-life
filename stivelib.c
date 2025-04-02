@@ -32,3 +32,52 @@ void deleteStack(GEN **stacktop){
     }
     free(*stacktop);
 }
+void AddAtBeginning(LIST **head,int l,int c){
+    LIST *NewNode=(LIST*)malloc(sizeof(LIST));
+    if(NewNode==NULL)
+        printf("Error at allocating memory for the new node of the list");
+    NewNode->l=l;
+    NewNode->c=c;
+    NewNode->next=*head;
+    *head=NewNode;
+}
+void AddAtEnd(LIST **head,int l,int c){
+    LIST *NewNode=(LIST*)malloc(sizeof(LIST));
+    if(NewNode==NULL)
+        printf("Error at allocating memory for the new node of the list");
+    NewNode->l=l;
+    NewNode->c=c;
+    NewNode->next=NULL;
+    LIST *aux;
+    aux=*head;
+    while(aux->next!=NULL){
+        aux=aux->next;
+    }
+    aux->next=NewNode;
+}
+
+void DeleteList(LIST **head){
+    LIST *aux;
+    while((*head)!=NULL){
+        aux=*head;
+        *head=(*head)->next;
+        free(aux);
+    }
+    free(*head);
+}
+
+void print_list(LIST *head,const char* argv[],int K){
+    FILE *f;
+    if ((f = fopen(argv[2], "a+")) == NULL)
+    {
+      printf("Error at opening the output file\n");
+      return;
+    }
+    fprintf(f,"%d ",K);
+    while(head->next!=NULL){
+        fprintf(f,"%d %d ",head->l,head->c);
+        head=head->next;
+    }
+    fprintf(f,"%d %d\n",head->l,head->c);
+    fclose(f);
+}
