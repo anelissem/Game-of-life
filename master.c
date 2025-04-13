@@ -36,8 +36,15 @@ int main(int argc, const char *argv[])
       fscanf(f, " %c", &matrix[j][q].state);
       matrix[j][q].neighbors = 0;
     }
+  FILE *out;
+  if ((out = fopen(argv[2], "w")) == NULL)
+  {
+    printf("Error at opening the output file\n");
+    return 1;
+  }
+  fclose(out);
   GEN *stacktop = NULL;
-  rules_stack(matrix, N, M, K, &stacktop, argv,T);
+  rules_stack(matrix, N, M, K, &stacktop, argv, T);
   deleteStack(&stacktop);
   for (int j = 0; j < N; j++)
   {
