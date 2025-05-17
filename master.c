@@ -140,9 +140,9 @@ int main(int argc, const char *argv[])
     }
     else
     {
-      TREE *root = NULL;//initializez arborele
-      LIST *gen0 = NULL;//initializez lista in care stochez prima eneratie
-      ///creez lista ce contine coordonatele celulelor vii din prima generatie
+      TREE *root = NULL; // initializez arborele
+      LIST *gen0 = NULL; // initializez lista in care stochez prima eneratie
+      /// creez lista ce contine coordonatele celulelor vii din prima generatie
       for (int i = 0; i < N; i++)
       {
         for (int j = 0; j < M; j++)
@@ -153,7 +153,7 @@ int main(int argc, const char *argv[])
           }
         }
       }
-      root = create_initial_tree(matrix, gen0, N, M);///creez radacina arborelui
+      root = create_initial_tree(matrix, gen0, N, M); /// creez radacina arborelui
       if (root == NULL)
       {
         printf("Error at the memory allocation for the root of the tree\n");
@@ -165,30 +165,17 @@ int main(int argc, const char *argv[])
         fclose(f);
         return 1;
       }
-      ///deschid fisierul de output in modul write pentru a sterge testele anterioare
-      FILE *out;
-      if ((out = fopen(argv[2], "w")) == NULL)
-      {
-        printf("Error at opening the output file\n");
-        for (int j = 0; j < N; j++)
-        {
-          free(matrix[j]);
-        }
-        free(matrix);
-        fclose(f);
-        return 1;
-      }
-      fclose(out);
-      /*print(matrix, N, M, argv);
-      change_rules(&root, matrix, matrixB, argv, N, M, K, T,0);
-      preorder(root, matrix, N, M, argv);
-      delete_tree(&root);*/
-      for (int i = 0; i < N; i++)
-      {
-        free(matrix[i]);
-      }
-      free(matrix);
-      return 0;
+      /// deschid fisierul de output in modul write pentru a sterge testele anterioare
+      print(matrix, N, M, argv);
+      change_rules(&root, matrix, argv, N, M, K, T);
+      delete_tree(&root);
     }
+    for (int i = 0; i < N; i++)
+    {
+      free(matrix[i]);
+    }
+    free(matrix);
+    return 0;
   }
 }
+
