@@ -177,7 +177,6 @@ GEN *create_stack_matrix(const char *argv[], CEL **matrix, int N, int M, int K, 
         return NULL;
     }
 
-    // Read matrix
     for (int j = 0; j < N; j++)
     {
         if (fgets(linie, sizeof(linie), f) == NULL)
@@ -191,14 +190,11 @@ GEN *create_stack_matrix(const char *argv[], CEL **matrix, int N, int M, int K, 
             matrix[j][q].neighbors = 0;
         }
     }
-
-    // Skip empty line
     if (fgets(linie, sizeof(linie), f) == NULL)
     {
         fclose(f);
         return NULL;
     }
-
     GEN *stacktop = NULL;
     while (fgets(linie, sizeof(linie), f) != NULL)
     {
@@ -269,39 +265,7 @@ void rules_stack(CEL **matrix, int N, int M, int K, GEN **stacktop, const char *
     int change_whole = 0;
     while (change_whole < K)
     {
-        for (int i = 0; i < N; i++)
-        {
-            for (int j = 0; j < M; j++)
-            {
-                matrix[i][j].neighbors = 0;
-            }
-        }
-        for (int i = 0; i < N; i++)
-        {
-            for (int j = 0; j < M; j++)
-            {
-                if (matrix[i][j].state == 'X')
-                {
-                    for (int di = -1; di <= 1; di++)
-                    {
-                        for (int dj = -1; dj <= 1; dj++)
-                        {
-                            if (di == 0 && dj == 0)
-                                continue;
-
-                            int ni = i + di;
-                            int nj = j + dj;
-
-                            if (ni >= 0 && ni < N && nj >= 0 && nj < M)
-                            {
-                                matrix[ni][nj].neighbors++;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
+        count_neighbors(matrix, N, M);
         LIST *head = NULL;
         int changes = 0;
         for (int i = 0; i < N; i++)
@@ -371,84 +335,51 @@ TREE *createNode(LIST *head)
     newNode->left = NULL;
     newNode->right = NULL;
     return newNode;
-} 
-void count_neighbors(CEL **matrix, int N, int M)
+}
+
+void rule_A(CEL **matrix, int N, int M)
 {
-    ///reinitializez numarul de vecini pentru fiecare celula
     if (matrix == NULL)
         return;
+    /// numar numarul de vecini pentru fiecare celula
+    count_neighbors(matrix, N, M);
+    /// aplic regula A
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < M; j++)
         {
-            matrix[i][j].neighbors = 0;
-        }
-    }
-    for(int i = 0 ; i < N; i++){
-        for(int j = 0 ; j < M ; j ++){
-            if(matrix[i][j-1].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i][j+1].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i-1][j].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i+1][j].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i-1][j-1].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i-1][j+1].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i+1][j-1].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-            if(matrix[i+1][j+1].state == 'X'){
-                matrix[i][j].neighbors++;
-            }
-        }
-    }
-}
-void rule_A(CEL **matrix, int N, int M){
-    if(matrix == NULL)
-        return;
-    ///numar numarul de vecini pentru fiecare celula
-    count_neighbors(matrix, N, M);
-    ///aplic regula B
-    for(int i = 0 ; i < N; i++){
-        for(int j = 0 ; j < M ; j ++){
-            if(matrix[i][j].state == 'X'){
-                if(matrix[i][j].neighbors < 2 || matrix[i][j].neighbors > 3){
+            if (matrix[i][j].state == 'X')
+            {
+                if (matrix[i][j].neighbors < 2 || matrix[i][j].neighbors > 3)
+                {
                     matrix[i][j].state = '+';
                 }
             }
-            else if(matrix[i][j].state == '+'){
-                if(matrix[i][j].neighbors == 3){
+            else if (matrix[i][j].state == '+')
+            {
+                if (matrix[i][j].neighbors == 3)
+                {
                     matrix[i][j].state = 'X';
                 }
             }
         }
     }
 }
-void rule_B(CEL **matrix, int N, int M){
-    if(matrix == NULL)
+void rule_B(CEL **matrix, int N, int M)
+{
+    if (matrix == NULL)
         return;
-    ///numar numarul de vecini pentru fiecare celula
+    /// numar numarul de vecini pentru fiecare celula
     count_neighbors(matrix, N, M);
-    ///aplic regula A
-    for(int i = 0 ; i < N; i++){
-        for(int j = 0 ; j < M ; j ++){
-            if(matrix[i][j].state == 'X'){
-                if(matrix[i][j].neighbors < 2 || matrix[i][j].neighbors > 3){
-                    matrix[i][j].state = '+';
-                }
-            }
-            else if(matrix[i][j].state == '+'){
-                if(matrix[i][j].neighbors == 3){
+    /// aplic regula B
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < M; j++)
+        {
+            if (matrix[i][j].state == '+')
+            {
+                if (matrix[i][j].neighbors == 2)
+                {
                     matrix[i][j].state = 'X';
                 }
             }
@@ -466,156 +397,54 @@ TREE *create_initial_tree(CEL **matrix, LIST *gen0, int N, int M)
     }
     return node;
 }
-
-void change_rules(TREE **root, CEL **matrix, CEL **matrixB, const char *argv[], int N, int M, int K, int T,int adancime)
+void create_list(CEL **matrix, LIST **head, int N, int M)
 {
-    if(*root == NULL || matrix == NULL || matrixB == NULL || adancime >= K)
-    {
+    if (matrix == NULL || head == NULL)
         return;
-    }
-    // initializez numarul de vecini pentru ambele matrice
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < M; j++)
-        {
-            matrix[i][j].neighbors = 0;
-            matrixB[i][j].neighbors = 0;
-        }
-    }
-    // ma ocup prima data de nodul stang
-    // numar numarul de vecini pentru fiecare celula din matricea B
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < M; j++)
-        {
-            if (matrixB[i][j].state == 'X')
-            {
-                for (int di = -1; di <= 1; di++)
-                {
-                    for (int dj = -1; dj <= 1; dj++)
-                    {
-                        if (di == 0 && dj == 0)
-                            continue;
-                        int ni = i + di;
-                        int nj = j + dj;
-                        if (ni >= 0 && ni < N && nj >= 0 && nj < M)
-                        {
-                            matrixB[ni][nj].neighbors++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // creez lista ce se salveaza in fiecare nod stang
-    LIST *headB = NULL;
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < M; j++)
-        {
-            if (matrixB[i][j].state == '+' && matrixB[i][j].neighbors == 2)
-            {
-                AddAtEnd(&headB, i, j);
-                matrixB[i][j].state = 'X';
-            }
-        }
-    }
-    // ma duc pe nodul urmator pe subarborele stang
-    if (headB != NULL)
-    { // daca lista nu e goala
-        (*root)->left = createNode(headB);
-        ///print(matrixB, N, M, argv);
-        if ((*root)->left)
-        {
-            LIST *current = (*root)->left->cells;
-            while (current != NULL)
-            {
-                matrix[current->l][current->c].state = (matrix[current->l][current->c].state == 'X') ? '+' : 'X';
-                current = current->next;
-            }
-            // print(matrixB, N, M, argv);
-            for (int i = 0; i < N; i++)
-            {
-                for (int j = 0; j < M; j++)
-                {
-                    matrix[i][j].state = matrixB[i][j].state;
-                }
-            }
-            
-            change_rules(&((*root)->left), matrix, matrixB, argv, N, M, K , T,adancime+1);
-        }
-    }
-    // calculez numarul de vecini pentru matrica din copilul drept
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < M; j++)
         {
             if (matrix[i][j].state == 'X')
             {
-                for (int di = -1; di <= 1; di++)
-                {
-                    for (int dj = -1; dj <= 1; dj++)
-                    {
-                        if (di == 0 && dj == 0)
-                            continue;
-                        int ni = i + di;
-                        int nj = j + dj;
-                        if (ni >= 0 && ni < N && nj >= 0 && nj < M)
-                        {
-                            matrix[ni][nj].neighbors++;
-                        }
-                    }
-                }
+                AddAtEnd(head, i, j);
             }
         }
     }
-    // fac lista cu celulele de se modifica
-    LIST *head = NULL;
+}
+CEL **make_copy(CEL **matrix, int N, int M)
+{
+    if (matrix == NULL)
+        return NULL;
+    CEL **matrixB = (CEL **)malloc(N * sizeof(CEL *));
+    if (matrixB == NULL)
+    {
+        printf("Error at the memory allocation for the rows of the matrix\n");
+        return NULL;
+    }
+    for (int i = 0; i < N; i++)
+    {
+        matrixB[i] = (CEL *)malloc(M * sizeof(CEL));
+        if (matrixB[i] == NULL)
+        {
+            printf("Error at the memory allocation for the rows of the matrix\n");
+            for (int j = 0; j < i; j++)
+            {
+                free(matrixB[j]);
+            }
+            free(matrixB);
+            return NULL;
+        }
+    }
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < M; j++)
         {
-            if (matrix[i][j].state == 'X')
-            {
-                if (matrix[i][j].neighbors < 2 || matrix[i][j].neighbors > 3)
-                {
-                    AddAtEnd(&head, i, j);
-                    matrix[i][j].state = '+';
-                }
-            }
-            else if (matrix[i][j].state == '+')
-            {
-                if (matrix[i][j].neighbors == 3)
-                {
-                    AddAtEnd(&head, i, j);
-                    matrix[i][j].state = 'X';
-                }
-            }
+            matrixB[i][j].state = matrix[i][j].state;
+            matrixB[i][j].neighbors = matrix[i][j].neighbors;
         }
     }
-    // daca am celule care se modifica adaug lista cu ele in nodul drept
-    if (head != NULL)
-    {
-        (*root)->right = createNode(head);
-        if ((*root)->right)
-        {
-            ///print(matrix, N, M, argv);
-            LIST *current = (*root)->right->cells;
-            while (current != NULL)
-            {
-                matrix[current->l][current->c].state = (matrix[current->l][current->c].state == 'X') ? '+' : 'X';
-                current = current->next;
-            }
-            for (int i = 0; i < N; i++)
-            {
-                for (int j = 0; j < M; j++)
-                {
-                    matrixB[i][j].state = matrix[i][j].state;
-                }
-            }
-            change_rules(&((*root)->right), matrix, matrixB, argv, N, M, K, T,adancime+1);
-        }
-    }
+    return matrixB;
 }
 
 void delete_tree(TREE **root)
@@ -633,22 +462,84 @@ void delete_tree(TREE **root)
     free(*root);
     *root = NULL;
 }
-/*void preorder(TREE *root, CEL **matrix, int N, int M, const char *argv[])
-{
-    if (root == NULL)
-    {
-        return;
-    }
-    if (root->cells != NULL)
-    {
-        LIST *current = root->cells;
-        while (current != NULL)
-        {
-            matrix[current->l][current->c].state = (matrix[current->l][current->c].state == 'X') ? '+' : 'X';
-            current = current->next;
+void count_neighbors(CEL **matrix, int N, int M) {
+    if (matrix == NULL) return;
+    
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            matrix[i][j].neighbors = 0;
+            
+            // Check all 8 possible neighbors
+            for (int di = -1; di <= 1; di++) {
+                for (int dj = -1; dj <= 1; dj++) {
+                    if (di == 0 && dj == 0) continue; // Skip self
+                    
+                    int ni = i + di;
+                    int nj = j + dj;
+                    
+                    if (ni >= 0 && ni < N && nj >= 0 && nj < M) {
+                        if (matrix[ni][nj].state == 'X') {
+                            matrix[i][j].neighbors++;
+                        }
+                    }
+                }
+            }
         }
     }
-    print(matrix, N, M, argv);
-    preorder(root->left, matrix, N, M, argv);
-    preorder(root->right, matrix, N, M, argv);
-}*/
+}
+
+void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, int K, int T) {
+    if (*root == NULL || matrix == NULL || root == NULL || K <= 0) {
+        return;
+    }
+
+    LIST *listaA = NULL, *listaB = NULL;
+    CEL **newmatrixA = make_copy(matrix, N, M);
+    CEL **newmatrixB = make_copy(matrix, N, M);
+    
+    if (newmatrixA == NULL || newmatrixB == NULL) {
+        if (newmatrixA) {
+            for (int i = 0; i < N; i++) free(newmatrixA[i]);
+            free(newmatrixA);
+        }
+        if (newmatrixB) {
+            for (int i = 0; i < N; i++) free(newmatrixB[i]);
+            free(newmatrixB);
+        }
+        return;
+    }
+
+    rule_A(newmatrixA, N, M);
+    rule_B(newmatrixB, N, M);
+    
+    create_list(newmatrixA, &listaA, N, M);
+    create_list(newmatrixB, &listaB, N, M);
+
+    if ((*root)->left == NULL && listaB != NULL) {
+        (*root)->left = createNode(listaB);
+        if ((*root)->left != NULL) {
+            print(newmatrixB, N, M, argv);
+            change_rules(&((*root)->left), newmatrixB, argv, N, M, K-1, T);
+        }
+    } else {
+        DeleteList(&listaB);
+    }
+
+    if ((*root)->right == NULL && listaA != NULL) {
+        (*root)->right = createNode(listaA);
+        if ((*root)->right != NULL) {
+            print(newmatrixA, N, M, argv);
+            change_rules(&((*root)->right), newmatrixA, argv, N, M, K-1, T);
+        }
+    } else {
+        DeleteList(&listaA);
+    }
+
+    // Clean up matrices
+    for (int i = 0; i < N; i++) {
+        free(newmatrixA[i]);
+        free(newmatrixB[i]);
+    }
+    free(newmatrixA);
+    free(newmatrixB);
+}
