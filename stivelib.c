@@ -18,12 +18,6 @@ void push(GEN **stacktop, LIST *head)
     NewNode->next = *stacktop;
     *stacktop = NewNode;
 }
-
-int isEmpty(GEN *stacktop)
-{
-    return (stacktop == NULL);
-}
-
 LIST *pop(GEN **stacktop)
 {
     if (stacktop == NULL || *stacktop == NULL)
@@ -51,22 +45,6 @@ void deleteStack(GEN **stacktop)
         }
         free(temp);
     }
-}
-
-void AddAtBeginning(LIST **head, int l, int c)
-{
-    if (head == NULL)
-        return;
-    LIST *NewNode = (LIST *)malloc(sizeof(LIST));
-    if (NewNode == NULL)
-    {
-        printf("Error allocating memory for list node\n");
-        return;
-    }
-    NewNode->l = l;
-    NewNode->c = c;
-    NewNode->next = *head;
-    *head = NewNode;
 }
 
 void AddAtEnd(LIST **head, int l, int c)
@@ -199,7 +177,7 @@ GEN *create_stack_matrix(const char *argv[], CEL **matrix, int N, int M, int K, 
     while (fgets(linie, sizeof(linie), f) != NULL)
     {
         LIST *head = NULL;
-        char *t = strtok(linie, " ");
+        const char *t = strtok(linie, " ");
         int pair[2], count = 0;
 
         while (t != NULL && count < 2)
@@ -489,7 +467,7 @@ void count_neighbors(CEL **matrix, int N, int M) {
 }
 
 void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, int K, int T) {
-    if (*root == NULL || matrix == NULL || root == NULL || K <= 0) {
+    if ((*root) == NULL || matrix == NULL || K <= 0) {
         return;
     }
 
