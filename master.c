@@ -38,13 +38,13 @@ int main(int argc, const char *argv[])
       printf("Error at the momory allocation for the entire matrix\n");
       return 1;
     }
-    for (int j = 0; j < N; j++)
+    for (int i = 0; i < N; i++)
     {
-      matrix[j] = (CEL *)malloc(M * sizeof(CEL));
-      if (matrix[j] == NULL)
+      matrix[i] = (CEL *)malloc(M * sizeof(CEL));
+      if (matrix[i] == NULL)
       {
         printf("Error at the memory allocation for the rows of the matrix\n");
-        for (int k = 0; k < j; k++)
+        for (int k = 0; k < i; k++)
         {
           free(matrix[k]);
         }
@@ -140,6 +140,14 @@ int main(int argc, const char *argv[])
     }
     else
     {
+      FILE *out = fopen(argv[2], "w");
+      if (out == NULL)
+      {
+        printf("Error opening output file\n");
+        // ... cleanup ...
+        return 1;
+      }
+      fclose(out);
       TREE *root = NULL; // initializez arborele
       LIST *gen0 = NULL; // initializez lista in care stochez prima eneratie
       /// creez lista ce contine coordonatele celulelor vii din prima generatie
@@ -157,9 +165,9 @@ int main(int argc, const char *argv[])
       if (root == NULL)
       {
         printf("Error at the memory allocation for the root of the tree\n");
-        for (int j = 0; j < N; j++)
+        for (int i = 0; i < N; i++)
         {
-          free(matrix[j]);
+          free(matrix[i]);
         }
         free(matrix);
         fclose(f);
@@ -178,4 +186,3 @@ int main(int argc, const char *argv[])
     return 0;
   }
 }
-
