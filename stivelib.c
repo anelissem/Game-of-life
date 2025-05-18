@@ -375,21 +375,23 @@ TREE *create_initial_tree(CEL **matrix, LIST *gen0, int N, int M)
     }
     return node;
 }
-void create_list(CEL **matrix, LIST **head, int N, int M)
+void create_list(CEL **prev, CEL **curr, LIST **head, int N, int M)
 {
-    if (matrix == NULL || head == NULL)
+    if (prev == NULL || curr == NULL || head == NULL)
         return;
+
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < M; j++)
         {
-            if (matrix[i][j].state == 'X')
+            if (prev[i][j].state != curr[i][j].state)
             {
                 AddAtEnd(head, i, j);
             }
         }
     }
 }
+
 CEL **make_copy(CEL **matrix, int N, int M)
 {
     if (matrix == NULL)
@@ -440,23 +442,32 @@ void delete_tree(TREE **root)
     free(*root);
     *root = NULL;
 }
-void count_neighbors(CEL **matrix, int N, int M) {
-    if (matrix == NULL) return;
-    
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < M; j++) {
+void count_neighbors(CEL **matrix, int N, int M)
+{
+    if (matrix == NULL)
+        return;
+
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < M; j++)
+        {
             matrix[i][j].neighbors = 0;
-            
+
             // Check all 8 possible neighbors
-            for (int di = -1; di <= 1; di++) {
-                for (int dj = -1; dj <= 1; dj++) {
-                    if (di == 0 && dj == 0) continue; // Skip self
-                    
+            for (int di = -1; di <= 1; di++)
+            {
+                for (int dj = -1; dj <= 1; dj++)
+                {
+                    if (di == 0 && dj == 0)
+                        continue; // Skip self
+
                     int ni = i + di;
                     int nj = j + dj;
-                    
-                    if (ni >= 0 && ni < N && nj >= 0 && nj < M) {
-                        if (matrix[ni][nj].state == 'X') {
+
+                    if (ni >= 0 && ni < N && nj >= 0 && nj < M)
+                    {
+                        if (matrix[ni][nj].state == 'X')
+                        {
                             matrix[i][j].neighbors++;
                         }
                     }
@@ -466,22 +477,28 @@ void count_neighbors(CEL **matrix, int N, int M) {
     }
 }
 
-void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, int K, int T) {
-    if ((*root) == NULL || matrix == NULL || K <= 0) {
+void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, int K, int T)
+{
+    if ((*root) == NULL || matrix == NULL || K <= 0)
+    {
         return;
     }
-
     LIST *listaA = NULL, *listaB = NULL;
     CEL **newmatrixA = make_copy(matrix, N, M);
     CEL **newmatrixB = make_copy(matrix, N, M);
-    
-    if (newmatrixA == NULL || newmatrixB == NULL) {
-        if (newmatrixA) {
-            for (int i = 0; i < N; i++) free(newmatrixA[i]);
+
+    if (newmatrixA == NULL || newmatrixB == NULL)
+    {
+        if (newmatrixA)
+        {
+            for (int i = 0; i < N; i++)
+                free(newmatrixA[i]);
             free(newmatrixA);
         }
-        if (newmatrixB) {
-            for (int i = 0; i < N; i++) free(newmatrixB[i]);
+        if (newmatrixB)
+        {
+            for (int i = 0; i < N; i++)
+                free(newmatrixB[i]);
             free(newmatrixB);
         }
         return;
@@ -489,32 +506,20 @@ void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, i
 
     rule_A(newmatrixA, N, M);
     rule_B(newmatrixB, N, M);
-    
-    create_list(newmatrixA, &listaA, N, M);
-    create_list(newmatrixB, &listaB, N, M);
+    create_list(matrix, newmatrixA, &listaA, N, M);
+    create_list(matrix, newmatrixB, &listaB, N, M);
 
-    if ((*root)->left == NULL && listaB != NULL) {
-        (*root)->left = createNode(listaB);
-        if ((*root)->left != NULL) {
-            print(newmatrixB, N, M, argv);
-            change_rules(&((*root)->left), newmatrixB, argv, N, M, K-1, T);
-        }
-    } else {
-        DeleteList(&listaB);
-    }
+    (*root)->left = createNode(listaB);
+    print(newmatrixB, N, M, argv);
+    change_rules(&((*root)->left), newmatrixB, argv, N, M, K - 1, T);
 
-    if ((*root)->right == NULL && listaA != NULL) {
-        (*root)->right = createNode(listaA);
-        if ((*root)->right != NULL) {
-            print(newmatrixA, N, M, argv);
-            change_rules(&((*root)->right), newmatrixA, argv, N, M, K-1, T);
-        }
-    } else {
-        DeleteList(&listaA);
-    }
+    (*root)->right = createNode(listaA);
 
-    // Clean up matrices
-    for (int i = 0; i < N; i++) {
+    print(newmatrixA, N, M, argv);
+    change_rules(&((*root)->right), newmatrixA, argv, N, M, K - 1, T);
+
+    for (int i = 0; i < N; i++)
+    {
         free(newmatrixA[i]);
         free(newmatrixB[i]);
     }
