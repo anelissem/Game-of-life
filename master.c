@@ -140,7 +140,7 @@ int main(int argc, const char *argv[])
     }
     else
     {
-      FILE *out = fopen(argv[2], "w");
+      out = fopen(argv[2], "w");
       if (out == NULL)
       {
         printf("Error opening output file\n");
@@ -173,7 +173,6 @@ int main(int argc, const char *argv[])
         fclose(f);
         return 1;
       }
-      /// deschid fisierul de output in modul write pentru a sterge testele anterioare
       print(matrix, N, M, argv);
       change_rules(&root, matrix, argv, N, M, K, T);
       delete_tree(&root);
