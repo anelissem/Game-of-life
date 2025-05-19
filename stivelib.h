@@ -41,12 +41,13 @@ GEN *create_stack_matrix(const char *argv[], CEL **matrix, int N, int M, int K, 
 void make_first_generation(const char *argv[], GEN **stacktop, CEL **matrix, int N, int M, int K, int T);
 TREE *createNode(LIST *head);
 void change_rules(TREE **root, CEL **matrix,const char *argv[], int N, int M, int K, int T);
-void preorder(TREE *root, CEL **matrix, int N, int M, const char *argv[]);
 void delete_tree(TREE **root);
 CEL **make_copy(CEL **matrix, int N, int M);
-void create_list(CEL **matrix, LIST **head, int N, int M);
+void create_list(CEL **prev, CEL **curr, LIST **head, int N, int M) ;
 void rule_B(CEL **matrix, int N, int M);
 void rule_A(CEL **matrix, int N, int M);
 TREE *create_initial_tree(CEL **matrix, LIST *gen0, int N, int M);
 void count_neighbors(CEL **matrix, int N, int M);
+
+
 #endif
