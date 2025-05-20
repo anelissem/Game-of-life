@@ -24,8 +24,18 @@ struct arbore {
     struct arbore *left, *right;
 };
 typedef struct arbore TREE;
-
-// Function declarations
+struct graph{
+    int V;//numarul de noduri din graf
+    int val;//valoarea atribuita pentru nod in matricea de adiacenta
+    int **adiacenta;//matricea de adiacenta
+};
+typedef struct graph G;
+struct nod{
+        int l,c;
+        int val;
+        int vizitat;
+};
+typedef struct nod NOD_GRAF;
 void print(CEL **matrix, int N, int M, const char *argv[]);
 void rules_stack(CEL **matrix, int N, int M, int K, GEN **stacktop, const char *argv[], int T);
 void push(GEN **stacktop, LIST *head);
@@ -48,6 +58,6 @@ void rule_B(CEL **matrix, int N, int M);
 void rule_A(CEL **matrix, int N, int M);
 TREE *create_initial_tree(CEL **matrix, LIST *gen0, int N, int M);
 void count_neighbors(CEL **matrix, int N, int M);
-
-
+void deleteGraph(G *g);
+NOD_GRAF *find_neighbor(CEL **matrice, int N, int M, int l, int c);
 #endif
