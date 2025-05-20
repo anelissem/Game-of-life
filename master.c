@@ -126,7 +126,7 @@ int main(int argc, const char *argv[])
       return 1;
     }
     fclose(out);
-    if (T != 3)
+    if (T == 1 || T == 2)
     {
       GEN *stacktop = NULL;
       rules_stack(matrix, N, M, K, &stacktop, argv, T);
@@ -144,12 +144,11 @@ int main(int argc, const char *argv[])
       if (out == NULL)
       {
         printf("Error opening output file\n");
-        // ... cleanup ...
         return 1;
       }
       fclose(out);
       TREE *root = NULL; // initializez arborele
-      LIST *gen0 = NULL; // initializez lista in care stochez prima eneratie
+      LIST *gen0 = NULL; // initializez lista in care stochez prima generatie
       /// creez lista ce contine coordonatele celulelor vii din prima generatie
       for (int i = 0; i < N; i++)
       {
@@ -173,9 +172,226 @@ int main(int argc, const char *argv[])
         fclose(f);
         return 1;
       }
-      print(matrix, N, M, argv);
+      if (T == 3)
+        print(matrix, N, M, argv);
       change_rules(&root, matrix, argv, N, M, K, T);
+      // declararea grafului
+      G *g = (G *)malloc(sizeof(G));
+      if (g == NULL)
+      {
+        printf("Error at the memory allocation for the graph\n");
+        delete_tree(&root);
+        for (int i = 0; i < N; i++)
+        {
+          free(matrix[i]);
+        }
+        free(matrix);
+        fclose(f);
+        return 1;
+      }
+      LIST *head = NULL;
+      head = root->cells;
+      CEL **matrice = (CEL **)malloc(N * sizeof(CEL *));
+      if (matrice == NULL)
+      {
+        printf("Error at the memory allocation for the adjacency matrix\n");
+        delete_tree(&root);
+        free(g);
+        for (int i = 0; i < N; i++)
+        {
+          free(matrix[i]);
+        }
+        free(matrix);
+        fclose(f);
+        return 1;
+      }
+      for (int i = 0; i < N; i++)
+      {
+        matrice[i] = (CEL *)malloc(M * sizeof(CEL));
+        if (matrice[i] == NULL)
+        {
+          printf("Error at the memory allocation for the adjacency matrix\n");
+          for (int j = 0; j < i; j++)
+          {
+            free(matrice[j]);
+          }
+          free(matrice);
+          free(g);
+          delete_tree(&root);
+          for (int j = 0; j < N; j++)
+          {
+            free(matrix[j]);
+          }
+          free(matrix);
+          fclose(f);
+          return 1;
+        }
+      }
+      for (int i = 0; i < N; i++)
+      {
+        for (int j = 0; j < M; j++)
+        {
+          matrice[i][j].state = '+';
+        }
+      }
+      // aici scot lista stocata in nodul radacina pentru a obtine coordonatele celulelor vii din generstia 0
+      while (head != NULL)
+      {
+        int l = head->l;
+        int c = head->c;
+        if (l >= 0 && l < N && c >= 0 && c < M)
+        {
+          matrice[l][c].state = 'X';
+        }
+        head = head->next;
+      }
+      // aflarea numarului de noduri din graf
+      g->V = 0;
+      for (int i = 0; i < N; i++)
+      {
+        for (int j = 0; j < M; j++)
+        {
+          if (matrice[i][j].state == 'X')
+          {
+
+            g->V++;
+          }
+        }
+      }
+      g->adiacenta = (int **)calloc(g->V, sizeof(int *)); // Alocă vectorul de pointeri
+      if (g->adiacenta == NULL)
+      {
+        printf("Error at the memory allocation for the adjacency matrix\n");
+        delete_tree(&root);
+        free(g);
+        for (int i = 0; i < N; i++)
+        {
+          free(matrix[i]);
+        }
+        free(matrix);
+        fclose(f);
+        return 1;
+      }
+      for (int i = 0; i < g->V; i++)
+      {
+        g->adiacenta[i] = (int *)calloc(g->V, sizeof(int)); // Alocă fiecare rând
+        if (g->adiacenta[i] == NULL)
+        {
+          printf("Error at the memory allocation for row %d\n", i);
+          for (int j = 0; j < i; j++)
+          {
+            free(g->adiacenta[j]);
+          }
+          free(g->adiacenta);
+          delete_tree(&root);
+          free(g);
+          for (int k = 0; k < N; k++)
+          {
+            free(matrix[k]);
+          }
+          free(matrix);
+          fclose(f);
+          return 1;
+        }
+      }
+      NOD_GRAF *visited = (NOD_GRAF *)calloc(g->V, sizeof(NOD_GRAF));
+      if (visited == NULL)
+      {
+        printf("Error at the memory allocation for the visited vector\n");
+        for (int i = 0; i < N; i++)
+        {
+          free(g->adiacenta[i]);
+        }
+        free(g->adiacenta);
+        free(g);
+        delete_tree(&root);
+        for (int k = 0; k < N; k++)
+        {
+          free(matrix[k]);
+        }
+        free(matrix);
+        fclose(f);
+        return 1;
+      }
+      int index = 0;
+      for (int i = 0; i < N; i++)
+      {
+        for (int j = 0; j < M; j++)
+        {
+          if (matrice[i][j].state == 'X')
+          {
+            visited[index].l = i;
+            visited[index].c = j;
+            visited[index].val = 0;
+            visited[index].vizitat = 0;
+            index++;
+          }
+        }
+      }
+      /// fac matricea de adiacenta pentru graful generat de generatia 0
+      for (int i = 0; i < g->V; i++)
+      {
+        for (int j = 0; j < g->V; j++)
+        {
+          if (i != j)
+          {
+
+            if (visited[j].l == visited[i].l - 1 && visited[j].c == visited[i].c - 1)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l - 1 && visited[j].c == visited[i].c + 1)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l + 1 && visited[j].c == visited[i].c - 1)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l + 1 && visited[j].c == visited[i].c + 1)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l - 1 && visited[j].c == visited[i].c)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l + 1 && visited[j].c == visited[i].c)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l && visited[j].c == visited[i].c - 1)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+            else if (visited[j].l == visited[i].l && visited[j].c == visited[i].c + 1)
+            {
+              g->adiacenta[i][j] = 1;
+            }
+          }
+        }
+      }
+      /*if (T != 3) aici verific daca mi-a creat corect matricea
+      {
+        for (int i = 0; i < g->V; i++)
+        {
+          for (int j = 0; j < g->V; j++)
+          {
+            printf("%d ", g->adiacenta[i][j]);
+          }
+          printf("\n");
+        }
+      }*/
+      /// fac o functie tip change_rules tot pe gandirea de preorder unde aplic pe fiecare nod ce am facut pt root dar am grija cu copiile matricilor
+      for (int i = 0; i < N; i++)
+      {
+        free(matrice[i]);
+      }
+      DeleteList(&head);
+      free(matrice);
+      free(visited);
       delete_tree(&root);
+      deleteGraph(g);
     }
     for (int i = 0; i < N; i++)
     {
