@@ -510,12 +510,13 @@ void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, i
     create_list(matrix, newmatrixB, &listaB, N, M);
 
     (*root)->left = createNode(listaB);
-    print(newmatrixB, N, M, argv);
+    if( T == 3 )
+        print(newmatrixB, N, M, argv);
     change_rules(&((*root)->left), newmatrixB, argv, N, M, K - 1, T);
 
     (*root)->right = createNode(listaA);
-
-    print(newmatrixA, N, M, argv);
+     if( T == 3 )
+        print(newmatrixA, N, M, argv);
     change_rules(&((*root)->right), newmatrixA, argv, N, M, K - 1, T);
 
     for (int i = 0; i < N; i++)
@@ -526,3 +527,57 @@ void change_rules(TREE **root, CEL **matrix, const char *argv[], int N, int M, i
     free(newmatrixA);
     free(newmatrixB);
 }
+void deleteGraph(G *g){
+    if(g == NULL)
+        return;
+    for(int i = 0 ; i < g->V; i++){
+        free(g->adiacenta[i]);
+    }
+    free(g->adiacenta);
+    free(g);
+    g=NULL;
+}
+/*NOD_GRAF *find_neighbor(CEL **matrice,NOD_GRAF *visited, int N, int M, int l, int c){
+    if(matrice == NULL)
+        return NULL;
+    NOD_GRAF *vecini=(NOD_GRAF *)malloc(8*sizeof(NOD_GRAF));
+    if(vecini == NULL)
+    {
+        printf("Error at the memory allocation for the neighbors\n");
+        return NULL;
+    }
+    if(l-1 >= 0 && c-1 >= 0 && matrice[l-1][c-1].state == 'X'){
+        vecini[0].l=l-1;
+        vecini[0].c=c-1;
+        
+    }
+    else if(l-1 >= 0 && c+1 <= M && matrice[l-1][c+1].state == 'X'){
+        vecini[1].l=l-1;
+        vecini[1].c=c+1;
+    }
+    else if(l+1 <= N && c-1 >= 0 && matrice[l+1][c-1].state == 'X'){
+        vecini[2].l=l+1;
+        vecini[2].c=c-1;
+    }
+    else if(l+1 <= N && c+1 <= M && matrice[l+1][c+1].state == 'X'){
+        vecini[3].l=l+1;
+        vecini[3].c=c+1;
+    }
+    else if(l-1 >= 0 && matrice[l-1][c].state == 'X'){
+        vecini[4].l=l-1;
+        vecini[4].c=c;
+    }
+    else if(l+1 <= N && matrice[l+1][c].state == 'X'){
+        vecini[5].l=l+1;
+        vecini[5].c=c;
+    }
+    else if(c-1 >= 0 && matrice[l][c-1].state == 'X'){
+        vecini[6].l=l;
+        vecini[6].c=c-1;
+    }
+    else if(c+1 <= M && matrice[l][c+1].state == 'X'){
+        vecini[7].l=l;
+        vecini[7].c=c+1;
+    }
+    return vecini;
+}*/
