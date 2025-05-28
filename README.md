@@ -44,12 +44,12 @@ The program writes the results to an output file specified in the command-line a
 ## Example Usage
 To simulate 5 generations of the Game of Life (Task 1):
 ```bash
-./game_of_life input_task1.txt output_task1.txt
+./game_of_life data1.in output_task1.txt
 ```
 
 To find the longest Hamiltonian path (Task 4):
 ```bash
-./game_of_life input_task4.txt output_task4.txt
+./game_of_life data16.in output_task4.txt
 ```
 
 ## Notes
