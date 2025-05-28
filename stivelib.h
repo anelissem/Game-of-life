@@ -54,12 +54,11 @@ typedef struct {
     int node;
     int degree;
 } NodeInfo;
-//structura pentru componentele conexe ale grafului
+//structura 
 typedef struct {
     int* nodes;
     int count;
 } Component;
-
 void print(CEL **matrix, int N, int M, const char *argv[]);
 void rules_stack(CEL **matrix, int N, int M, int K, GEN **stacktop, const char *argv[], int T);
 void push(GEN **stacktop, LIST *head);

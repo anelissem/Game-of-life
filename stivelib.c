@@ -825,6 +825,7 @@ int compare_nods(const void *a, const void *b)
     return global_nodes[index_a].c - global_nodes[index_b].c;
 }
 //functia ce compara doua cai de lungimi egale pentru a obtine pe cea mai buna atunci cand vreau sa aflu cel mai lung lant hamiltonian
+//o folosesc in qsort pentru a sorta lanturile hamiltoniene gasite
 int compare_paths(int *a, int *b, int lenght, NOD_GRAF *nodes)
 {
     for (int i = 0; i < lenght; ++i)
@@ -854,8 +855,8 @@ void same_path(HPath *cale, NOD_GRAF *nodes)
     //eliberez memoria alocata pentru lantul inversat
     free(lant_inversat);
 }
-
-void apply_changes(CEL **matrix, LIST *head)
+//functia ce imi aplica schimbarile asupra matricei, in functie de lista cu coordonatele celulelor ce si-au schimbat starea
+void change_state(CEL **matrix, LIST *head)
 {
     while (head)
     {
@@ -864,58 +865,61 @@ void apply_changes(CEL **matrix, LIST *head)
         head = head->next;
     }
 }
-
-void undo_changes(CEL **matrix, LIST *head)
+// functie ce face un DFS pentru a gasi componentele conexe ale grafului
+void componente_conexe(G *g, int nod, int *visited, int *vector, int *nr)
 {
-    apply_changes(matrix, head);
-}
-
-void dfsComponent(G *g, int node, int *visited, int *list, int *size)
-{
-    visited[node] = 1;
-    list[(*size)++] = node;
+    visited[nod] = 1;
+    vector[(*nr)++] = nod;
     for (int i = 0; i < g->V; ++i)
-        if (g->adiacenta[node][i] && !visited[i])
-            dfsComponent(g, i, visited, list, size);
+        if (g->adiacenta[nod][i] && !visited[i])
+            componente_conexe(g, i, visited, vector, nr);
 }
-
-void findComponents(G *g, Component **components, int *compCount)
+// functie ce gaseste componentele conexe ale grafului si le salveaza intr-un vector de componente conexe
+void findComponents(G *g, Component **components, int *compNR)
 {
     int *visited = calloc(g->V, sizeof(int));
     *components = NULL;
-    *compCount = 0;
+    *compNR = 0;
 
     for (int i = 0; i < g->V; ++i)
     {
+        // daca nodul nu a fost vizitat, inseamna ca face parte dintr-o componenta conexa noua
         if (!visited[i])
         {
-            int *list = malloc(g->V * sizeof(int));
-            int size = 0;
-            dfsComponent(g, i, visited, list, &size);
-            *components = realloc(*components, (*compCount + 1) * sizeof(Component));
-            (*components)[*compCount].nodes = list;
-            (*components)[*compCount].count = size;
-            (*compCount)++;
+            int *vector = malloc(g->V * sizeof(int));
+            int nr = 0;
+            componente_conexe(g, i, visited, vector, &nr);
+            // aloc memorie pentru o noua componenta
+            // si o adaug in vectorul de componente
+            *components = realloc(*components, (*compNR + 1) * sizeof(Component));
+            (*components)[*compNR].nodes = vector;
+            (*components)[*compNR].count = nr;
+            (*compNR)++;
         }
     }
     free(visited);
 }
-
+// functie ce gaseste cel mai lung lant hamiltonian dintr-un graf folosind DFS
+//o folosesc pentru a gasi cel mai lung lant hamiltonian in cazul in care graful are un numar mare de noduri, chiar daca este lent, insa imi gaseste exact lantul, peste 25 de noduri
 void dfs_longest(G *g, int node, int *visited, NOD_GRAF *nodes, int depth, HPath *best, int *path, int stop_len)
 {
+    // daca am ajuns la lungimea maxima a lantului,adica numarul de noduri din graf, ies din functie
     if (best->lungime == stop_len)
         return;
-
+    // marchez nodul curent ca vizitat si il adaug in lantul curent
     visited[node] = 1;
+    // adaug nodul curent in lantul curent
     path[depth] = node;
-
-    if (depth + 1 > best->lungime ||
-        (depth + 1 == best->lungime && compare_paths(path, best->path, depth + 1, nodes) < 0))
+// verific daca lungimea lantului curent este mai mare decat lungimea maxima a lantului gasit pana acum
+    // sau daca lungimea este egala si lantul curent are nodurile intr-o ordine mai buna dupa coordonate
+    if (depth + 1 > best->lungime || (depth + 1 == best->lungime && compare_paths(path, best->path, depth + 1, nodes) < 0))
     {
+        // actualizez lungimea maxima a lantului si salvez lantul curent
         best->lungime = depth + 1;
         memcpy(best->path, path, (depth + 1) * sizeof(int));
     }
-
+    // daca am ajuns la lungimea maxima a lantului, ies din functie
+    //ma duc la toti vecinii nodului curent
     for (int i = 0; i < g->V; ++i)
         if (!visited[i] && g->adiacenta[node][i])
         {
@@ -923,31 +927,33 @@ void dfs_longest(G *g, int node, int *visited, NOD_GRAF *nodes, int depth, HPath
             if (best->lungime == stop_len)
                 break;
         }
-
+    //marchez nodul curent ca nevizitat pentru a putea fi folosit in alte lanturi pentru a gasi toate lanturile hamiltoniene posibile
     visited[node] = 0;
 }
-
-void dfs_bitmask(G *g, int current, int mask, int depth, Component comp,
-                 HPath *best, int *path, NOD_GRAF *nodes, int stop_len)
+// functie ce gaseste cel mai lung lant hamiltonian folosind bitmasking si DFS
+//o folosesc pentru grafuri cu numar mediu de noduri, 22-25, pentru a reduce timpul de executie
+void dfs_bitmask(G *g, int current, int mask, int depth, Component comp,HPath *best, int *path, NOD_GRAF *nodes, int stop_len)
 {
+    //adaug nodul curent la lantul partial
     path[depth] = comp.nodes[current];
-
+    //actualizez cel mai bun drum gasit
     if (depth + 1 > best->lungime ||
         (depth + 1 == best->lungime && compare_paths(path, best->path, depth + 1, nodes) < 0))
     {
         best->lungime = depth + 1;
         memcpy(best->path, path, (depth + 1) * sizeof(int));
     }
-
+    //daca am adaugat toate nodurile la lantul partial, ies din functie
     if (best->lungime == stop_len)
         return;
-
+    //ca sa nu mai folosesc si un vector de vizitate, folosesc bitmasking pentru a marca nodurile vizitate
+    //astfel fac operatiile mai rapide si salvez memorie facand operatii pe biti
     for (int next = 0; next < comp.count; ++next)
         if (!(mask & (1 << next)) && g->adiacenta[comp.nodes[current]][comp.nodes[next]])
             dfs_bitmask(g, next, mask | (1 << next), depth + 1, comp, best, path, nodes, stop_len);
 }
-
-void solve_with_held_karp(G *g, NOD_GRAF *nodes, Component comp, HPath *best)
+//folosesc algoritmul Held-Karp pentru a gasi cel mai lung lant hamiltonian in cazul in care graful are <= 22, este mai rapid decat DFS si reduce timpul de executie daca graful este mic
+void held_karp(G *g, NOD_GRAF *nodes, Component comp, HPath *best)
 {
     int n = comp.count;
     int **dp = malloc((1 << n) * sizeof(int *));
@@ -959,7 +965,6 @@ void solve_with_held_karp(G *g, NOD_GRAF *nodes, Component comp, HPath *best)
         for (int j = 0; j < n; ++j)
             dp[i][j] = -1, prev[i][j] = -1;
     }
-
     for (int i = 0; i < n; ++i)
         dp[1 << i][i] = 1;
 
@@ -1005,7 +1010,6 @@ void solve_with_held_karp(G *g, NOD_GRAF *nodes, Component comp, HPath *best)
         mask ^= (1 << curr);
         curr = prev_node;
     }
-
     for (int i = 0; i < (1 << n); ++i)
     {
         free(dp[i]);
@@ -1014,128 +1018,145 @@ void solve_with_held_karp(G *g, NOD_GRAF *nodes, Component comp, HPath *best)
     free(dp);
     free(prev);
 }
+
 void task4(TREE *root, CEL **matrix, int N, int M, const char *argv[])
 {
     if (!root)
         return;
-    apply_changes(matrix, root->cells);
-
+    //actualizez matricea cu celulele vii din generatia 0
+    change_state(matrix, root->cells);
+    //deschid fisierul de output
     FILE *f = fopen(argv[2], "a");
     if (!f)
         return;
-
-    // Indexare celule vii
-    int **index_map = malloc(N * sizeof(int *));
+    //fac o matrice de indexare pentru a putea accesa rapid nodurile din graf atunci cand fac matricea de adiacenta
+    int **index_matrix = malloc(N * sizeof(int *));
+    //in V retin numarul de noduri din graf
     int V = 0;
     for (int i = 0; i < N; ++i)
     {
-        index_map[i] = malloc(M * sizeof(int));
+        index_matrix[i] = malloc(M * sizeof(int));
         for (int j = 0; j < M; ++j)
         {
             if (matrix[i][j].state == 'X')
-                index_map[i][j] = V++;
+                index_matrix[i][j] = V++;
             else
-                index_map[i][j] = -1;
+                index_matrix[i][j] = -1;
         }
     }
-
     if (V == 0)
     {
         fprintf(f, "-1\n");
-        goto cleanup;
+        for (int i = 0; i < N; ++i)
+            free(index_matrix[i]);
+        free(index_matrix);
+        fclose(f);
     }
-
-    // Construcție graf
+    //creez graful
     G *g = malloc(sizeof(G));
+    if(g==NULL){
+        fprintf(f, "Error allocating memory for graph\n");
+        for (int i = 0; i < N; ++i)
+            free(index_matrix[i]);
+        free(index_matrix);
+        fclose(f);
+        return;
+    }
     g->V = V;
+    //fac matricea de adiacenta
     g->adiacenta = malloc(V * sizeof(int *));
     for (int i = 0; i < V; ++i)
         g->adiacenta[i] = calloc(V, sizeof(int));
-
+    //fac vectorul de noduri
     NOD_GRAF *nodes = malloc(V * sizeof(NOD_GRAF));
-    int idx = 0;
+    int index = 0;
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < M; ++j)
-            if (index_map[i][j] != -1)
+            if (index_matrix[i][j] != -1)
             {
-                nodes[idx].l = i;
-                nodes[idx].c = j;
-                idx++;
+                nodes[index].l = i;
+                nodes[index].c = j;
+                index++;
             }
-
+    //creez matricea de adiacenta a grafului
     int dx[] = {-1, -1, -1, 0, 0, 1, 1, 1}, dy[] = {-1, 0, 1, -1, 1, -1, 0, 1};
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < M; ++j)
-            if (index_map[i][j] != -1)
+            if (index_matrix[i][j] != -1)
                 for (int d = 0; d < 8; ++d)
                 {
                     int ni = i + dx[d], nj = j + dy[d];
-                    if (ni >= 0 && ni < N && nj >= 0 && nj < M && index_map[ni][nj] != -1)
-                        g->adiacenta[index_map[i][j]][index_map[ni][nj]] = 1;
+                    if (ni >= 0 && ni < N && nj >= 0 && nj < M && index_matrix[ni][nj] != -1)
+                        g->adiacenta[index_matrix[i][j]][index_matrix[ni][nj]] = 1;
                 }
 
-    // Componente conexe
-    Component *comps = NULL;
+    // Aflu toate componentele conexe ale grafului
+    Component *componente = NULL;
     int compCount = 0;
-    findComponents(g, &comps, &compCount);
+    findComponents(g, &componente, &compCount);
 
-    for (int c = 0; c < compCount; ++c)
+    for (int i = 0; i < compCount; ++i)
     {
-        Component comp = comps[c];
-
+        Component comp = componente[i];
         if (comp.count == 0)
         {
             free(comp.nodes);
             continue;
         }
 
-        // Sortează nodurile componentei lexicografic
+        // Sortează nodurile componentei 
         global_nodes = nodes;
         qsort(comp.nodes, comp.count, sizeof(int), compare_nods);
-
+        //definesc cel mai bun drum pentru componenta curenta
         HPath best = {0, calloc(V, sizeof(int))};
 
-        for (int c = 0; c < compCount; ++c)
+        for (int j = 0; j < compCount; ++j)
         {
-            Component comp = comps[c];
+            Component comp = componente[j];
             if (comp.count == 0)
             {
                 free(comp.nodes);
                 continue;
             }
-
+            //definesc cel mai bun drum din una din componentele conexe continute de graf
             HPath local_best = {0, malloc(comp.count * sizeof(int))};
-
+            //daca graful e mic, are pana in 22 de noduri folosesc algoritmul Held-Karp
             if (comp.count <= 22)
             {
-                solve_with_held_karp(g, nodes, comp, &local_best);
+                held_karp(g, nodes, comp, &local_best);
+                //verific daca lantul gasit are nodurile in ordinea corecta
+                //daca nu are, il inversez pentru a avea nodurile in ordinea corecta
                 same_path(&local_best, nodes);
             }
-            else if (comp.count <= 25)
+            else if (comp.count <= 25) //daca graful e mediu, are intre 22 si 25 de noduri, folosesc DFS cu bitmasking
             {
                 int *temp_path = malloc(comp.count * sizeof(int));
-                for (int i = 0; i < comp.count; ++i)
+                for (int q = 0; q< comp.count; ++q)
                 {
-                    dfs_bitmask(g, i, 1 << i, 0, comp, &local_best, temp_path, nodes, comp.count);
+                    dfs_bitmask(g, q, 1 << q, 0, comp, &local_best, temp_path, nodes, comp.count);
                     if (local_best.lungime == comp.count)
                         break;
                 }
                 free(temp_path);
+                //verific daca lantul gasit are nodurile in ordinea corecta
+                //daca nu are, il inversez pentru a avea nodurile in ordinea corecta
                 same_path(&local_best, nodes);
             }
-            else
+            else// daca graful e mare, are peste 25 de noduri, folosesc DFS pentru a gasi cel mai lung lant hamiltonian
             {
                 int *visited = calloc(V, sizeof(int));
                 int *path = malloc(comp.count * sizeof(int));
-                for (int i = 0; i < comp.count; ++i)
+                for (int q = 0; q < comp.count; ++q)
                 {
                     memset(visited, 0, V * sizeof(int));
-                    dfs_longest(g, comp.nodes[i], visited, nodes, 0, &local_best, path, comp.count);
+                    dfs_longest(g, comp.nodes[q], visited, nodes, 0, &local_best, path, comp.count);
                     if (local_best.lungime == comp.count)
                         break;
                 }
                 free(path);
                 free(visited);
+                //verific daca lantul gasit are nodurile in ordinea corecta
+                //daca nu are, il inversez pentru a avea nodurile in ordinea corecta
                 same_path(&local_best, nodes);
             }
 
@@ -1150,7 +1171,7 @@ void task4(TREE *root, CEL **matrix, int N, int M, const char *argv[])
             free(local_best.path);
             free(comp.nodes);
         }
-
+        //afisez cel mai lung lant hamiltonian gasit pentru graful
         if (best.lungime <= 1)
             fprintf(f, "-1\n");
         else
@@ -1164,7 +1185,7 @@ void task4(TREE *root, CEL **matrix, int N, int M, const char *argv[])
         }
 
         free(best.path);
-        free(comps);
+        free(componente);
         for (int i = 0; i < V; ++i)
             free(g->adiacenta[i]);
         free(g->adiacenta);
@@ -1173,8 +1194,8 @@ void task4(TREE *root, CEL **matrix, int N, int M, const char *argv[])
 
     cleanup:
         for (int i = 0; i < N; ++i)
-            free(index_map[i]);
-        free(index_map);
+            free(index_matrix[i]);
+        free(index_matrix);
         fclose(f);
 
         if (root->left)
@@ -1182,6 +1203,6 @@ void task4(TREE *root, CEL **matrix, int N, int M, const char *argv[])
         if (root->right)
             task4(root->right, matrix, N, M, argv);
 
-        undo_changes(matrix, root->cells);
+        change_state(matrix, root->cells);
     }
 }
